@@ -6,6 +6,7 @@ $title=filter_input(INPUT_POST, 'title', FILTER_SANITIZE_SPECIAL_CHARS);
 $text=filter_input(INPUT_POST, 'text', FILTER_SANITIZE_SPECIAL_CHARS);
 $ip_address = $_SERVER['REMOTE_ADDR'];
 
+//バリデーション
 if($_SERVER['REQUEST_METHOD']=='POST'){
   if(empty($name)){
       $error['name']='blank';
@@ -23,6 +24,7 @@ if($_SERVER['REQUEST_METHOD']=='POST'){
       $error['title']='length';
   }
 
+  //投稿データをDBに追加
   if(empty($error)){
     $sql=$db->prepare("INSERT INTO posts SET name=:name, title=:title, text=:text, ip_address=:ip_address, created_at=now()");
     
@@ -38,6 +40,7 @@ if($_SERVER['REQUEST_METHOD']=='POST'){
   }
 }
 
+//ページネーション
 $page = $_REQUEST['page'];
 
 if ($page == '') {
@@ -52,10 +55,12 @@ $page = min($page, $maxPage);
 
 $start = ($page -1) * 20;
 
+//投稿内容一覧のデータを取得
 $articles = $db->prepare('SELECT * FROM posts ORDER BY created_at DESC LIMIT ?, 20');
 $articles->bindParam(1, $start, PDO::PARAM_INT);
 $articles->execute();
 
+//htmlsoecialchars関数
 if( ! function_exists('h') ) {
   function h($s) {
     echo htmlspecialchars($s, ENT_QUOTES, "UTF-8");
@@ -77,6 +82,7 @@ if( ! function_exists('h') ) {
 <body>
   <section class="container mb-5 mt-5 pb-5" style="padding:0; border: solid 1px #ccc;">
     <h1 class="pl-5 bg-primary text-white pt-3 pb-3">掲示板</h1>
+    <!-- 投稿フォーム -->
     <div class="mt-3 pl-5 pb-5 pr-5">
       <form action="" method="post">
         <label class="mt-3">投稿者名</label><input type="text" name="name" class="form-control">
@@ -100,6 +106,8 @@ if( ! function_exists('h') ) {
         <input type="submit" value="投稿する" class="btn btn-md btn-primary">
       </form>
     </div>
+    <!-- 投稿フォームここまで -->
+    <!-- 投稿内容一覧 -->
     <div class="pl-5 pr-5">
       <h2 class="mt-4 mb-4">投稿内容一覧</h2>
       <?php foreach ($articles as $article) : ?>
@@ -117,6 +125,8 @@ if( ! function_exists('h') ) {
           <a href="delete.php?id=<?=h($article['id']); ?>" class="btn btn-sm btn-outline-dark mb-4">削除する</a>
         </div>
       <?php endforeach; ?>
+    <!-- 投稿内容一覧ここまで -->
+    <!-- ページネーション -->
       <ul class="mt-5 d-flex justify-content-center" style="list-style:none;">
         <?php if($page > 1): ?>
           <li><a class="page-link" href="index.php?page=<?= ($page-1); ?>">前へ</a></li>
@@ -130,6 +140,7 @@ if( ! function_exists('h') ) {
           <li><a class="page-link" href="index.php?page=<?= ($page+1) ?>">次へ</a></li>
         <?php endif; ?>
       </ul>
+    <!-- ページネーションここまで -->
     </div>
   </section>
 </body>
