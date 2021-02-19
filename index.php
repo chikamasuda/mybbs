@@ -1,53 +1,6 @@
 <?php
 require('dbconnect.php');
 
-$name=filter_input(INPUT_POST, 'name', FILTER_SANITIZE_SPECIAL_CHARS);
-$title=filter_input(INPUT_POST, 'title', FILTER_SANITIZE_SPECIAL_CHARS);
-$text=filter_input(INPUT_POST, 'text', FILTER_SANITIZE_SPECIAL_CHARS);
-$delete_key=filter_input(INPUT_POST, 'delete_key', FILTER_SANITIZE_SPECIAL_CHARS);
-$ip_address = $_SERVER['REMOTE_ADDR'];
-
-//バリデーション
-if($_SERVER['REQUEST_METHOD']=='POST'){
-  if(empty($name)){
-    $error['name']='blank';
-  }
-  if(empty($title)){
-    $error['title']='blank';
-  }
-  if(empty($text)){
-    $error['text']='blank';
-  }
-  if(empty($delete_key)){
-    $error['delete_key']='blank';
-  }
-  if(strlen($name) > 255){
-    $error['name']='length';
-  }
-  if(strlen($title) > 255){
-    $error['title']='length';
-  }
-  if(strlen($delete_key) > 255){
-    $error['delete_key']='length';
-  }
-
-  //投稿データをDBに追加
-  if(empty($error)){
-    $sql=$db->prepare("INSERT INTO posts SET name=:name, title=:title, text=:text, ip_address=:ip_address, delete_key=:delete_key, created_at=now()");
-    
-    $sql -> bindValue(':name', $name, PDO::PARAM_STR);
-    $sql -> bindValue(':title', $title, PDO::PARAM_STR);
-    $sql -> bindValue(':text', $text, PDO::PARAM_STR);
-    $sql -> bindValue(':ip_address', $ip_address, PDO::PARAM_STR);
-    $sql -> bindValue(':delete_key', $delete_key, PDO::PARAM_STR);
-
-    $sql -> execute();
-
-    header('Location: index.php');
-    exit();
-  }
-}
-
 //ページネーション
 $page = $_REQUEST['page'];
 
@@ -56,7 +9,7 @@ if ($page == '') {
 }
 $page = max($page, 1);
 
-$counts = $db->query('SELECT COUNT(*) AS cnt FROM posts');
+$counts = $db->query('SELECT COUNT(*) AS cnt FROM posts WHERE delete_flag=0');
 $cnt = $counts->fetch();
 $maxPage = ceil($cnt['cnt'] / 20);
 $page = min($page, $maxPage);
@@ -64,7 +17,7 @@ $page = min($page, $maxPage);
 $start = ($page -1) * 20;
 
 //投稿内容一覧のデータを取得
-$articles = $db->prepare('SELECT * FROM posts ORDER BY created_at DESC LIMIT ?, 20');
+$articles = $db->prepare('SELECT * FROM posts WHERE delete_flag=0 ORDER BY created_at DESC LIMIT ?, 20');
 $articles->bindParam(1, $start, PDO::PARAM_INT);
 $articles->execute();
 
@@ -81,7 +34,6 @@ if( ! function_exists('h') ) {
 
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
   <title>ウェブ掲示板</title>
@@ -92,33 +44,12 @@ if( ! function_exists('h') ) {
     <h1 class="pl-5 bg-primary text-white pt-3 pb-3">掲示板</h1>
     <!-- 投稿フォーム -->
     <div class="mt-3 pl-5 pb-5 pr-5">
-      <form action="" method="post">
-        <label class="mt-3">投稿者名</label><input type="text" name="name" class="form-control">
-        <?php if($error['name'] === 'blank'): ?>
-          <p class="text-danger">投稿者名を記入してください。</p>
-        <?php endif; ?>
-        <?php if($error['name'] === 'length'): ?>
-          <p class="text-danger">投稿者名は255文字以内で記入してください。</p>
-        <?php endif; ?>
-        <label class="mt-3">タイトル</label><input type="text" name="title" class="form-control">
-        <?php if($error['title'] === 'blank'): ?>
-          <p class="text-danger">タイトルを記入してください。</p>
-        <?php endif; ?>
-        <?php if($error['title'] === 'length'): ?>
-          <p class="text-danger">タイトルは255文字以内で記入してください。</p>
-        <?php endif; ?>
-        <label class="mt-3">本文</label><textarea name="text" id="" cols="" rows="5" class="form-control"></textarea><br>
-        <?php if($error['text'] === 'blank'): ?>
-          <p class="text-danger">本文を記入してください。</p>
-        <?php endif; ?>
+      <form action="post.php" method="post">
+        <label class="mt-3">投稿者名</label><input type="text" name="name" class="form-control" id="name">
+        <label class="mt-3">タイトル</label><input type="text" name="title" class="form-control" id="title">
+        <label class="mt-3">本文</label><textarea name="text" class="form-control"></textarea><br>
         <label>削除キー</label><input type="text" name="delete_key" class="form-control mb-4">
-        <?php if($error['delete_key'] === 'blank'): ?>
-          <p class="text-danger">削除キーを記入してください。</p>
-        <?php endif; ?>
-        <?php if($error['delete_key'] === 'length'): ?>
-          <p class="text-danger">削除キーは255文字以内で記入してください。</p>
-        <?php endif; ?>
-        <input type="submit" value="投稿する" class="btn btn-md btn-primary">
+        <input type="submit" value="投稿する" class="btn btn-md btn-primary" id="submit">
       </form>
     </div>
     <!-- 投稿フォームここまで -->
@@ -160,6 +91,8 @@ if( ! function_exists('h') ) {
     <!-- ページネーションここまで -->
     </div>
   </section>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+  <script src="js/main.js"></script>
 </body>
 
 </html>
