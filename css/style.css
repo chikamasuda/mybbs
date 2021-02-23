@@ -1,0 +1,22 @@
+.page-item.active .page-link {
+    background-color: #333;
+    border-color: #333;
+}
+
+.page-link {
+    color: #333;
+}
+
+.container {
+    padding:0; 
+    border: solid 1px #ccc;
+}
+
+ul {
+    list-style: none;
+}
+
+.post-border {
+    border-bottom: solid 1px #ced4da; 
+    margin:0;
+}
