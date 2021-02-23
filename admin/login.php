@@ -2,6 +2,11 @@
 require '../dbconnect.php';
 
 $password = filter_input(INPUT_POST, 'password', FILTER_SANITIZE_SPECIAL_CHARS);
+
+//ハッシュ化したパスワードをDBに保管
+// $hash = password_hash($password, PASSWORD_DEFAULT);
+// echo $hash;
+
 $id = filter_input(INPUT_POST, 'id', FILTER_SANITIZE_SPECIAL_CHARS);
 
 //管理画面ユーザーの情報を取得
@@ -20,12 +25,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (empty($password)) {
         $error['password'] = 'blank';
     }
-    if (!empty($password) && $admin_user['password'] !== $password) {
+    if (!empty($password) && !password_verify($password, $admin_user['password'])) {
         $error['password'] = 'mismatch';
     }
 
     if (empty($error)) {
-        if ($admin_user['id'] === $id && $admin_user['password'] === $password) {
+        if ($admin_user['id'] === $id && password_verify($password, $admin_user['password'])) {
             session_start();
             $_SESSION['admin_login'] = true;
             header('Location:index.php');
@@ -61,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <p class="text-danger">IDに誤りがあります。</p>
           <?php endif;?>
           <!-- IDエラー表示ここまで -->
-          <label class="mt-3">パスワード</label><input type="text" name="password" class="form-control">
+          <label class="mt-3">パスワード</label><input type="password" name="password" class="form-control">
           <!-- パスワードエラー表示 -->
           <?php if ($error['password'] === 'blank'): ?>
             <p class="text-danger">パスワードが未記入です。</p>
