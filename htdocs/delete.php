@@ -1,5 +1,5 @@
 <?php
-require 'dbconnect.php';
+require_once '../dbconnect.php';
 
 $id = $_REQUEST['id'];
 $delete_key = filter_input(INPUT_POST, 'delete_key', FILTER_SANITIZE_SPECIAL_CHARS);
@@ -11,6 +11,7 @@ if (!preg_match('/^[0-9]+$/', $id)) {
 }
 
 //index.phpでの投稿内容のデータを取得
+
 $articles = $db->prepare('SELECT * FROM posts WHERE id=?');
 $articles->execute(array($id));
 $article = $articles->fetch();

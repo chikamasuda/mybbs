@@ -1,5 +1,6 @@
 <?php
-require 'dbconnect.php';
+require_once '../dbconnect.php';
+require_once 'functions.php';
 
 $name = filter_input(INPUT_POST, 'name', FILTER_SANITIZE_SPECIAL_CHARS);
 $title = filter_input(INPUT_POST, 'title', FILTER_SANITIZE_SPECIAL_CHARS);
@@ -66,12 +67,6 @@ $start = ($page - 1) * 20;
 $articles = $db->prepare('SELECT * FROM posts WHERE delete_flag=0 ORDER BY created_at DESC LIMIT ?, 20');
 $articles->bindParam(1, $start, PDO::PARAM_INT);
 $articles->execute();
-
-//htmlspecialchars関数
-function h($s)
-{
-    return htmlspecialchars($s, ENT_QUOTES, "UTF-8");
-}
 ?>
 
 <!DOCTYPE html>

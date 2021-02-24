@@ -1,36 +1,53 @@
 <?php
-require '../dbconnect.php';
+require_once '../../dbconnect.php';
+require_once '../functions.php';
 session_start();
 
 //ログインしていないときはログインページに戻る
-if ($_SESSION['admin_login'] !== true) {
+if (!$_SESSION['admin_login']) {
     header('Location:login.php');
     exit();
 }
 
 //ページネーション
-$page = $_REQUEST['page'];
+$page = $_GET['page'];
 
-if ($page == '') {
+if (empty($page)) {
     $page = 1;
 }
 
 $page = max($page, 1);
 $counts = $db->query('SELECT COUNT(*) AS cnt FROM posts WHERE delete_flag=0');
 $cnt = $counts->fetch();
+
+if ($cnt === 0) {
+    $page = 1;
+}
+
 $maxPage = ceil($cnt['cnt'] / 20);
 $page = min($page, $maxPage);
 $start = ($page - 1) * 20;
 
 //投稿内容一覧のデータを取得
-$articles = $db->prepare('SELECT * FROM posts WHERE delete_flag=0 ORDER BY created_at DESC LIMIT ?, 20');
-$articles->bindParam(1, $start, PDO::PARAM_INT);
-$articles->execute();
+try {
+    $articles = $db->prepare('SELECT * FROM posts WHERE delete_flag=0 ORDER BY created_at DESC LIMIT ?, 20');
+    $articles->bindParam(1, $start, PDO::PARAM_INT);
+    $articles->execute();
+} catch (PDOException $e) {
+    echo '投稿内容一覧の取得に失敗しました。' . $e->getMessage();
+}
 
-//htmlspecialchars関数
-function h($s)
-{
-    return htmlspecialchars($s, ENT_QUOTES, "UTF-8");
+//CSVデータインポート(途中)
+if (isset($_FILES['csvfile']) && $_FiLES['csvfile']['error'] == 0) {
+    $tmp_name = $_FILES['csvfile']['tmp_name'];
+    //SplFileObjectでCSVファイルを取得
+    $file = new SplFileObject($temp_name);
+    $arrName = array();
+
+    while (!$file->eof()) {
+        $arrtmp = $file->fgetcsv();
+        $arrName[] = $arrtmp[6];
+    }
 }
 ?>
 
@@ -54,6 +71,11 @@ function h($s)
         <input type="submit" value="ログアウト" class="btn btn-info btn-md ml-5">
       </form>
     </div>
+    <form action="" method="post" enctype="multipart/form-data" class="pl-5 mt-3 mb-5">
+        <label>CSVファイルを選択してください</label>
+        <input type="file" id="csvfile" name="csvfile" class="ml-3">
+        <input type="submit" class="btn btn-md btn-info" value="CSVインポート">
+    </form>
     <!-- 投稿内容一覧 -->
     <div class="pl-5 pr-5">
       <h4 class="mt-4 mb-4">投稿内容一覧</h4>
