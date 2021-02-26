@@ -2,15 +2,15 @@
 require_once '../dbconnect.php';
 require_once 'functions.php';
 
-$name = filter_input(INPUT_POST, 'name', FILTER_SANITIZE_SPECIAL_CHARS);
-$title = filter_input(INPUT_POST, 'title', FILTER_SANITIZE_SPECIAL_CHARS);
-$text = $_POST['text'];
-$delete_key = filter_input(INPUT_POST, 'delete_key', FILTER_SANITIZE_SPECIAL_CHARS);
+$name = (string) filter_input(INPUT_POST, 'name', FILTER_SANITIZE_SPECIAL_CHARS);
+$title = (string) filter_input(INPUT_POST, 'title', FILTER_SANITIZE_SPECIAL_CHARS);
+$text = (string) $_POST['text'];
+$delete_key = (string) filter_input(INPUT_POST, 'delete_key', FILTER_SANITIZE_SPECIAL_CHARS);
 $ip_address = $_SERVER['REMOTE_ADDR'];
-$id = filter_input(INPUT_POST, 'id', FILTER_SANITIZE_SPECIAL_CHARS);
+$error = [];
 
 //バリデーション
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if (isset($_POST['insert'])) {
     if (empty($name)) {
         $error['name'] = 'blank';
     }
@@ -23,50 +23,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($delete_key)) {
         $error['delete_key'] = 'blank';
     }
-    if (strlen($name) > 255) {
+
+    define("stringMaxSize", 255);
+    if (strlen($name) > stringMaxSize) {
         $error['name'] = 'length';
     }
-    if (strlen($title) > 255) {
+    if (strlen($title) > stringMaxSize) {
         $error['title'] = 'length';
     }
-    if (strlen($delete_key) > 255) {
+    if (strlen($delete_key) > stringMaxSize) {
         $error['delete_key'] = 'length';
     }
 
     //投稿データをDBに追加
     if (empty($error)) {
-        $sql = $db->prepare("INSERT INTO posts SET name=:name, title=:title, text=:text, ip_address=:ip_address, delete_key=:delete_key, created_at=now()");
+        try {
+            $db->beginTransaction();
+            $sql = $db->prepare("INSERT INTO posts SET name=:name, title=:title, text=:text, ip_address=:ip_address, delete_key=:delete_key, created_at=now()");
 
-        $sql->bindValue(':name', $name, PDO::PARAM_STR);
-        $sql->bindValue(':title', $title, PDO::PARAM_STR);
-        $sql->bindValue(':text', $text, PDO::PARAM_STR);
-        $sql->bindValue(':ip_address', $ip_address, PDO::PARAM_STR);
-        $sql->bindValue(':delete_key', $delete_key, PDO::PARAM_STR);
-        $sql->execute();
-
-        header('Location:post.php');
-        exit();
+            $sql->bindValue(':name', $name, PDO::PARAM_STR);
+            $sql->bindValue(':title', $title, PDO::PARAM_STR);
+            $sql->bindValue(':text', $text, PDO::PARAM_STR);
+            $sql->bindValue(':ip_address', $ip_address, PDO::PARAM_STR);
+            $sql->bindValue(':delete_key', $delete_key, PDO::PARAM_STR);
+            $sql->execute();
+            $db->commit();
+            header('Location:post.php');
+            exit();
+        } catch (PDOException $e) {
+            echo '投稿を削除できませんでした。' . $e->getMessage();
+            $db->rollBack();
+        }
     }
 }
-
 //ページネーション
-$page = $_REQUEST['page'];
+$page = filter_input(INPUT_GET, 'page', FILTER_SANITIZE_SPECIAL_CHARS);
 
-if ($page == '') {
+if (empty($page)) {
     $page = 1;
 }
 
 $page = max($page, 1);
-$counts = $db->query('SELECT COUNT(*) AS cnt FROM posts WHERE delete_flag=0');
-$cnt = $counts->fetch();
+
+try {
+    $counts = $db->query('SELECT COUNT(*) AS cnt FROM posts WHERE delete_flag=0');
+    $cnt = $counts->fetch();
+} catch (PDOException $e) {
+    echo 'DB接続エラー：' . $e->getMessage();
+}
+
+if ($cnt === 0) {
+    $page = 1;
+}
+
 $maxPage = ceil($cnt['cnt'] / 20);
 $page = min($page, $maxPage);
 $start = ($page - 1) * 20;
 
 //投稿内容一覧のデータを取得
-$articles = $db->prepare('SELECT * FROM posts WHERE delete_flag=0 ORDER BY created_at DESC LIMIT ?, 20');
-$articles->bindParam(1, $start, PDO::PARAM_INT);
-$articles->execute();
+try {
+    $articles = $db->prepare('SELECT * FROM posts WHERE delete_flag=0 ORDER BY created_at DESC LIMIT ?, 20');
+    $articles->bindParam(1, $start, PDO::PARAM_INT);
+    $articles->execute();
+} catch (PDOException $e) {
+    echo 'DB接続エラー：' . $e->getMessage();
+}
 ?>
 
 <!DOCTYPE html>
@@ -81,49 +102,39 @@ $articles->execute();
 </head>
 
 <body>
-  <section class="container mb-5 mt-5 pb-5">
+  <section class="container mb-5 mt-5 pb-5" style="padding:0; border: solid 1px #ccc;">
     <h1 class="pl-5 bg-primary text-white pt-3 pb-3">掲示板</h1>
-    <!-- 投稿フォーム -->
     <div class="mt-3 pl-5 pb-5 pr-5">
       <form action="" method="post">
         <label class="mt-3">投稿者名</label><input type="text" name="name" class="form-control" id="name">
-        <!-- 投稿者名エラー表示 -->
         <?php if ($error['name'] === 'blank'): ?>
           <p class="text-danger">投稿者名が未記入です。</p>
         <?php endif;?>
         <?php if ($error['name'] === 'length'): ?>
-          <p class="text-danger">投稿者名は255文字以内で入力してください。</p>
+          <p class="text-danger">投稿者名は<?=stringMaxSize?>文字以内で入力してください。</p>
         <?php endif;?>
-        <!-- 投稿者名エラー表示ここまで -->
         <label class="mt-3">タイトル</label><input type="text" name="title" class="form-control" id="title">
-        <!-- タイトルエラー表示 -->
         <?php if ($error['title'] === 'blank'): ?>
           <p class="text-danger">タイトルが未記入です。</p>
         <?php endif;?>
         <?php if ($error['title'] === 'length'): ?>
-          <p class="text-danger">タイトルは255文字以内で入力してください。</p>
+          <p class="text-danger">タイトルは<?=stringMaxSize?>文字以内で入力してください。</p>
         <?php endif;?>
-        <!-- タイトルエラー表示ここまで -->
         <label class="mt-3">本文</label><textarea name="text" class="form-control"></textarea><br>
-        <!-- 本文エラー表示 -->
         <?php if ($error['text'] === 'blank'): ?>
           <p class="text-danger">本文が未記入です。</p>
         <?php endif;?>
-        <!-- 本文エラー表示ここまで -->
         <label>削除キー</label><input type="text" name="delete_key" class="form-control">
-        <!-- 削除キーエラー表示 -->
         <?php if ($error['delete_key'] === 'blank'): ?>
           <p class="text-danger">削除キーが未記入です。</p>
         <?php endif;?>
         <?php if ($error['delete_key'] === 'length'): ?>
-          <p class="text-danger">削除キーは255文字以内で入力してください。</p>
+          <p class="text-danger">削除キーは<?=stringMaxSize?>文字以内で入力してください。</p>
         <?php endif;?>
-        <!-- 削除キーエラー表示ここまで -->
-        <input type="submit" value="投稿する" class="btn btn-md btn-primary mt-4" id="submit">
+        <input type="submit" value="投稿する" class="btn btn-md btn-primary mt-4" id="submit" name="insert">
       </form>
     </div>
-    <!-- 投稿フォームここまで -->
-    <!-- 投稿内容一覧 -->
+
     <div class="pl-5 pr-5">
       <h2 class="mt-4 mb-4">投稿内容一覧</h2>
       <?php foreach ($articles as $article): ?>
@@ -139,12 +150,11 @@ $articles->execute();
           <p><span class="font-weight-bold">タイトル：</span><?=h($article['title']);?></p>
           <p><span class="font-weight-bold">本文：</span><?=nl2br(h($article['text']));?></p>
           <div class="d-flex justify-content-end post-border">
-            <a href="delete.php?id=<?=h($article['id']);?>" class="btn btn-sm btn-outline-dark mb-4">削除する</a>
+            <a href="delete.php?id=<?=h($article['id']);?>" class="btn btn-sm btn-outline-dark mb-4" name="delete_btn">削除する</a>
           </div>
         <?php endif;?>
       <?php endforeach;?>
-    <!-- 投稿内容一覧ここまで -->
-    <!-- ページネーション -->
+
     <ul class="mt-5 d-flex justify-content-center" style="list-style:none;">
       <?php if ($page > 1): ?>
         <li><a class="page-link" href="index.php?page=<?=($page - 1);?>">前へ</a></li>
@@ -158,9 +168,7 @@ $articles->execute();
         <li><a class="page-link" href="index.php?page=<?=($page + 1)?>">次へ</a></li>
       <?php endif;?>
     </ul>
-    <!-- ページネーションここまで -->
     </div>
   </section>
 </body>
-
 </html>

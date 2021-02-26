@@ -1,30 +1,31 @@
 <?php
 require_once '../../dbconnect.php';
 
-$password = filter_input(INPUT_POST, 'password', FILTER_SANITIZE_SPECIAL_CHARS);
+$password = (string) filter_input(INPUT_POST, 'password', FILTER_SANITIZE_SPECIAL_CHARS);
 
 //ハッシュ化したパスワードをDBに保管
 // $hash = password_hash($password, PASSWORD_DEFAULT);
 // echo $hash;
 
-$id = filter_input(INPUT_POST, 'id', FILTER_SANITIZE_SPECIAL_CHARS);
+$id = (int) filter_input(INPUT_POST, 'id', FILTER_SANITIZE_SPECIAL_CHARS);
 $error = [];
 
 //管理画面ユーザーの情報を取得
 try {
     $admin_users = $db->prepare('SELECT * FROM admin WHERE id=:id');
-    $admin_users->bindValue(':id', $id, PDO::PARAM_INT);
+    $admin_users->bindValue(':id', (int) $id, PDO::PARAM_INT);
     $admin_users->execute();
     $admin_user = $admin_users->fetch();
+    !$admin_user ? $admin_user = array("id" => "", "password" => "") : "";
 } catch (PDOException $e) {
-    echo '管理画面ユーザーの情報が取得できませんでした。' . $e->getMessage();
+    echo 'DB接続エラー：' . $e->getMessage();
 }
 
 //バリデーション、エラーがなかったらログイン認証
 if (isset($_POST['login'])) {
     if (empty($id)) {
         $error['id'] = 'blank';
-    } else if ($admin_user['id'] !== $id) {
+    } else if ($admin_user['id'] === $id) {
         $error['id'] = 'mismatch';
     }
 

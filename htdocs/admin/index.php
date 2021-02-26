@@ -10,15 +10,20 @@ if (!$_SESSION['admin_login']) {
 }
 
 //ページネーション
-$page = $_GET['page'];
+$page = filter_input(INPUT_GET, 'page', FILTER_SANITIZE_SPECIAL_CHARS);
 
 if (empty($page)) {
     $page = 1;
 }
 
 $page = max($page, 1);
-$counts = $db->query('SELECT COUNT(*) AS cnt FROM posts WHERE delete_flag=0');
-$cnt = $counts->fetch();
+
+try {
+    $counts = $db->query('SELECT COUNT(*) AS cnt FROM posts WHERE delete_flag=0');
+    $cnt = $counts->fetch();
+} catch (PDOException $e) {
+    echo 'DB接続エラー：' . $e->getMessage();
+}
 
 if ($cnt === 0) {
     $page = 1;
@@ -34,20 +39,7 @@ try {
     $articles->bindParam(1, $start, PDO::PARAM_INT);
     $articles->execute();
 } catch (PDOException $e) {
-    echo '投稿内容一覧の取得に失敗しました。' . $e->getMessage();
-}
-
-//CSVデータインポート(途中)
-if (isset($_FILES['csvfile']) && $_FiLES['csvfile']['error'] == 0) {
-    $tmp_name = $_FILES['csvfile']['tmp_name'];
-    //SplFileObjectでCSVファイルを取得
-    $file = new SplFileObject($temp_name);
-    $arrName = array();
-
-    while (!$file->eof()) {
-        $arrtmp = $file->fgetcsv();
-        $arrName[] = $arrtmp[6];
-    }
+    echo 'DB接続エラー：' . $e->getMessage();
 }
 ?>
 
@@ -71,12 +63,6 @@ if (isset($_FILES['csvfile']) && $_FiLES['csvfile']['error'] == 0) {
         <input type="submit" value="ログアウト" class="btn btn-info btn-md ml-5">
       </form>
     </div>
-    <form action="" method="post" enctype="multipart/form-data" class="pl-5 mt-3 mb-5">
-        <label>CSVファイルを選択してください</label>
-        <input type="file" id="csvfile" name="csvfile" class="ml-3">
-        <input type="submit" class="btn btn-md btn-info" value="CSVインポート">
-    </form>
-    <!-- 投稿内容一覧 -->
     <div class="pl-5 pr-5">
       <h4 class="mt-4 mb-4">投稿内容一覧</h4>
       <?php foreach ($articles as $article): ?>
@@ -94,12 +80,10 @@ if (isset($_FILES['csvfile']) && $_FiLES['csvfile']['error'] == 0) {
           <p><span class="font-weight-bold">タイトル：</span><?=h($article['title']);?></p>
           <p><span class="font-weight-bold">本文：</span><?=nl2br(h($article['text']));?></p>
           <div class="d-flex justify-content-end post-border">
-            <a href="delete.php?id=<?=h($article['id']);?>" class="btn btn-sm btn-outline-dark mb-4">削除する</a>
+            <a href="delete.php?id=<?=h($article['id']);?>" class="btn btn-sm btn-outline-dark mb-4" name="delete">削除する</a>
           </div>
         <?php endif;?>
       <?php endforeach;?>
-    <!-- 投稿内容一覧ここまで -->
-    <!-- ページネーション -->
     <ul class="mt-5 mb-5 d-flex justify-content-center">
       <?php if ($page > 1): ?>
         <li><a class="page-link" href="index.php?page=<?=($page - 1);?>">前へ</a></li>
@@ -113,7 +97,6 @@ if (isset($_FILES['csvfile']) && $_FiLES['csvfile']['error'] == 0) {
         <li><a class="page-link" href="index.php?page=<?=($page + 1)?>">次へ</a></li>
       <?php endif;?>
     </ul>
-    <!-- ページネーションここまで -->
     </div>
   </section>
 </body>

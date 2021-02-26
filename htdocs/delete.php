@@ -1,8 +1,10 @@
 <?php
 require_once '../dbconnect.php';
+require_once 'functions.php';
 
-$id = $_REQUEST['id'];
-$delete_key = filter_input(INPUT_POST, 'delete_key', FILTER_SANITIZE_SPECIAL_CHARS);
+$id = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_SPECIAL_CHARS);
+$delete_key = (string) filter_input(INPUT_POST, 'delete_key', FILTER_SANITIZE_SPECIAL_CHARS);
+$error = [];
 
 //数字以外の値がパラメータで送られてきた場合、トップ画面に戻す
 if (!preg_match('/^[0-9]+$/', $id)) {
@@ -10,30 +12,30 @@ if (!preg_match('/^[0-9]+$/', $id)) {
     exit();
 }
 
-//index.phpでの投稿内容のデータを取得
-
-$articles = $db->prepare('SELECT * FROM posts WHERE id=?');
-$articles->execute(array($id));
-$article = $articles->fetch();
-
-//投稿の削除処理
-if ($article['delete_key'] == $delete_key) {
-    $del = $db->prepare('UPDATE posts SET delete_flag=1 WHERE id=?');
-    $del->execute(array($id));
-    header('Location:index.php');
-    exit();
+//該当IDのデータを取得
+try {
+    $articles = $db->prepare('SELECT * FROM posts WHERE id=?');
+    $articles->execute(array((int) $id));
+    $article = $articles->fetch();
+} catch (PDOException $e) {
+    echo 'DB接続エラー：' . $e->getMessage();
 }
 
-//バリデーション
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+//投稿の削除処理
+if (isset($_POST["delete"])) {
     if (empty($delete_key)) {
         $error['delete_key'] = 'blank';
-    }
-    if (!empty($delete_key) && $article['delete_key'] !== $delete_key) {
+    } else if ($article['delete_key'] !== $delete_key) {
         $error['delete_key'] = 'mismatch';
     }
-    if (strlen($delete_key) > 255) {
+
+    define("stringMaxSize", 255);
+    if (strlen($delete_key) > stringMaxSize) {
         $error['delete_key'] = 'length';
+    }
+
+    if (empty($error)) {
+        delete($db, $id, $delete_key);
     }
 }
 ?>
@@ -55,18 +57,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="mt-3 pl-5 pb-5 pr-5">
       <form action="" method="post">
         <label class="mt-3">削除キー</label><input type="text" name="delete_key" class="form-control mb-4">
-        <!-- エラー処理 -->
         <?php if ($error['delete_key'] === 'mismatch'): ?>
           <p class="text-danger">削除キーが違います。</p>
         <?php endif;?>
         <?php if ($error['delete_key'] === 'length'): ?>
-          <p class="text-danger">削除キーは255文字以内で記入してください。</p>
+          <p class="text-danger">削除キーは<?=stringMaxSize?>文字以内で記入してください。</p>
         <?php endif;?>
         <?php if ($error['delete_key'] === 'blank'): ?>
           <p class="text-danger">削除キーが未記入です。</p>
         <?php endif;?>
-        <!-- エラー処理おわり -->
-        <input type="submit" value="削除する" class="btn btn-md btn-primary">
+        <input type="submit" value="削除する" class="btn btn-md btn-primary" name="delete">
       </form>
     </div>
   </section>

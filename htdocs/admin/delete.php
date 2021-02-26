@@ -1,5 +1,6 @@
 <?php
 require_once '../../dbconnect.php';
+require_once '../functions.php';
 session_start();
 
 //ログインしていないときはログインページに戻る
@@ -8,7 +9,7 @@ if (!$_SESSION['admin_login']) {
     exit();
 }
 
-$id = $_GET['id'];
+$id = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_SPECIAL_CHARS);
 
 //数字以外の値がパラメータで送られてきた場合、トップ画面に戻す
 if (!preg_match('/^[0-9]+$/', $id)) {
@@ -16,24 +17,9 @@ if (!preg_match('/^[0-9]+$/', $id)) {
     exit();
 }
 
-//index.phpでの投稿内容のデータを取得
-try {
-    $articles = $db->prepare('SELECT * FROM posts WHERE id=?');
-    $articles->execute(array($id));
-    $article = $articles->fetch();
-} catch (PDOException $e) {
-    echo '投稿の取得に失敗しました。' . $e->getMessage();
-}
-
 //投稿の削除処理
-try {
-    if (isset($_POST['delete'])) {
-        $del = $db->prepare('UPDATE posts SET delete_flag=1 WHERE id=?');
-        $del->execute(array($id));
-        header('Location:index.php');
-    }
-} catch (PDOException $e) {
-    echo '投稿の削除に失敗しました。' . $e->getMessage();
+if (isset($_POST["delete"])) {
+    admin_delete($db, $id);
 }
 ?>
 
