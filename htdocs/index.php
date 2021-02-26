@@ -98,6 +98,8 @@ try {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
   <link rel="stylesheet" href="../css/style.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="../js/main.js"></script>
   <title>ウェブ掲示板</title>
 </head>
 
@@ -105,12 +107,12 @@ try {
   <section class="container mb-5 mt-5 pb-5" style="padding:0; border: solid 1px #ccc;">
     <h1 class="pl-5 bg-primary text-white pt-3 pb-3">掲示板</h1>
     <div class="mt-3 pl-5 pb-5 pr-5">
-      <form action="" method="post">
+      <form action="" method="post" id="form_id">
         <label class="mt-3">投稿者名</label><input type="text" name="name" class="form-control" id="name">
         <label class="mt-3">タイトル</label><input type="text" name="title" class="form-control" id="title">
-        <label class="mt-3">本文</label><textarea name="text" class="form-control"></textarea><br>
-        <label>削除キー</label><input type="text" name="delete_key" class="form-control">
-        <input type="submit" value="投稿する" class="btn btn-md btn-primary mt-4" id="submit" name="insert">
+        <label class="mt-3">本文</label><textarea name="text" class="form-control" id="text"></textarea><br>
+        <label>削除キー</label><input type="text" name="delete_key" class="form-control" id="delete_key">
+        <input type="submit" value="投稿する" class="btn btn-md btn-primary mt-4" id="button" name="insert">
       </form>
     </div>
 
@@ -149,15 +151,6 @@ try {
     </ul>
     </div>
   </section>
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-  <script>
-  　　$(function() {
-          $("#submit").click(function() {
-              if($("#name").val() == '') {
-                $("<p class='text-danger'>必須項目が未記入です。</p>").insertAfter("input #name")
-              }
-          });
-　    });
-  </script>
+  
 </body>
 </html>
