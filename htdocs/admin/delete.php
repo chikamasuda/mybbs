@@ -1,14 +1,15 @@
 <?php
-require '../dbconnect.php';
+require_once '../../dbconnect.php';
+require_once '../functions.php';
 session_start();
 
 //ログインしていないときはログインページに戻る
-if ($_SESSION['admin_login'] !== true) {
+if (!$_SESSION['admin_login']) {
     header('Location:login.php');
     exit();
 }
 
-$id = $_REQUEST['id'];
+$id = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_SPECIAL_CHARS);
 
 //数字以外の値がパラメータで送られてきた場合、トップ画面に戻す
 if (!preg_match('/^[0-9]+$/', $id)) {
@@ -16,17 +17,9 @@ if (!preg_match('/^[0-9]+$/', $id)) {
     exit();
 }
 
-//index.phpでの投稿内容のデータを取得
-$articles = $db->prepare('SELECT * FROM posts WHERE id=?');
-$articles->execute(array($id));
-$article = $articles->fetch();
-
 //投稿の削除処理
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $del = $db->prepare('UPDATE posts SET delete_flag=1 WHERE id=?');
-    $del->execute(array($id));
-    header('Location:index.php');
-    exit();
+if (isset($_POST["delete"])) {
+    admin_delete($db, $id);
 }
 ?>
 
@@ -47,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="mt-3 pl-5 pb-4 pr-5">
       <form action="" method="post">
         <p class="mt-4 mb-4">投稿内容を削除してよろしいですか？</p>
-        <input type="submit" value="削除する" class="btn btn-md btn-info">
+        <input type="submit" value="削除する" name="delete" class="btn btn-md btn-info">
         <a href="index.php" class="btn btn-info btn-md ml-3">キャンセルして戻る</a>
       </form>
     </div>
