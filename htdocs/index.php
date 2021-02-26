@@ -51,7 +51,7 @@ if (isset($_POST['insert'])) {
             header('Location:post.php');
             exit();
         } catch (PDOException $e) {
-            echo '投稿を削除できませんでした。' . $e->getMessage();
+            echo 'DB接続エラー：' . $e->getMessage();
             $db->rollBack();
         }
     }
@@ -107,30 +107,9 @@ try {
     <div class="mt-3 pl-5 pb-5 pr-5">
       <form action="" method="post">
         <label class="mt-3">投稿者名</label><input type="text" name="name" class="form-control" id="name">
-        <?php if ($error['name'] === 'blank'): ?>
-          <p class="text-danger">投稿者名が未記入です。</p>
-        <?php endif;?>
-        <?php if ($error['name'] === 'length'): ?>
-          <p class="text-danger">投稿者名は<?=stringMaxSize?>文字以内で入力してください。</p>
-        <?php endif;?>
         <label class="mt-3">タイトル</label><input type="text" name="title" class="form-control" id="title">
-        <?php if ($error['title'] === 'blank'): ?>
-          <p class="text-danger">タイトルが未記入です。</p>
-        <?php endif;?>
-        <?php if ($error['title'] === 'length'): ?>
-          <p class="text-danger">タイトルは<?=stringMaxSize?>文字以内で入力してください。</p>
-        <?php endif;?>
         <label class="mt-3">本文</label><textarea name="text" class="form-control"></textarea><br>
-        <?php if ($error['text'] === 'blank'): ?>
-          <p class="text-danger">本文が未記入です。</p>
-        <?php endif;?>
         <label>削除キー</label><input type="text" name="delete_key" class="form-control">
-        <?php if ($error['delete_key'] === 'blank'): ?>
-          <p class="text-danger">削除キーが未記入です。</p>
-        <?php endif;?>
-        <?php if ($error['delete_key'] === 'length'): ?>
-          <p class="text-danger">削除キーは<?=stringMaxSize?>文字以内で入力してください。</p>
-        <?php endif;?>
         <input type="submit" value="投稿する" class="btn btn-md btn-primary mt-4" id="submit" name="insert">
       </form>
     </div>
@@ -170,5 +149,15 @@ try {
     </ul>
     </div>
   </section>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script>
+  　　$(function() {
+          $("#submit").click(function() {
+              if($("#name").val() == '') {
+                $("<p class='text-danger'>必須項目が未記入です。</p>").insertAfter("input #name")
+              }
+          });
+　    });
+  </script>
 </body>
 </html>
