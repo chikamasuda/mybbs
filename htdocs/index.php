@@ -4,7 +4,7 @@ require_once 'functions.php';
 
 $name = (string) filter_input(INPUT_POST, 'name', FILTER_SANITIZE_SPECIAL_CHARS);
 $title = (string) filter_input(INPUT_POST, 'title', FILTER_SANITIZE_SPECIAL_CHARS);
-$text = (string) $_POST['text'];
+$text = (string) filter_input(INPUT_POST, 'text', FILTER_SANITIZE_SPECIAL_CHARS);
 $delete_key = (string) filter_input(INPUT_POST, 'delete_key', FILTER_SANITIZE_SPECIAL_CHARS);
 $ip_address = $_SERVER['REMOTE_ADDR'];
 $error = [];
@@ -67,6 +67,7 @@ $page = max($page, 1);
 
 try {
     $counts = $db->query('SELECT COUNT(*) AS cnt FROM posts WHERE delete_flag=0');
+    $cnt = [];
     $cnt = $counts->fetch();
 } catch (PDOException $e) {
     echo 'DB接続エラー：' . $e->getMessage();

@@ -1,6 +1,6 @@
 <?php
 
 define('HOSTNAME', 'localhost');
-define('DATABASE', 'admin');
-define('USERNAME', 'admin');
-define('PASSWORD', 'admin');
+define('DATABASE', 'mybbs');
+define('USERNAME', 'root');
+define('PASSWORD', 'root');
